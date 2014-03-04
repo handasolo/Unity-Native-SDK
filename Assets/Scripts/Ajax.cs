@@ -88,15 +88,16 @@ public class Ajax {
 		fields.Add ("force200", "1");			
 
 		if (type == RequestType.POST) {
-			if (form.data.Length == 0) {
+			if (fields.Count == 0) {
 				form.AddField ("ju", "nk");
 
 			} else {
 				foreach (KeyValuePair<string, string> kp in fields) {
+					Debug.Log (" " + kp.Key + " = " + kp.Value);
 					form.AddField (kp.Key, kp.Value);
 				}
 			}
-		
+
 			www = new WWW(url, form.data, headers);
 			
 		} else {

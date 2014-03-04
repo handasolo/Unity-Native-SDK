@@ -9,7 +9,7 @@ class PendingRequest {
 	public int retryCount; // number of times we've retried this request
 }
 
-class Active {
+class Current {
 	public JSONNode play;  // POST /play response from server
 	public Boolean started; // true if we started playback
 	public Boolean canSkip; // true if we can skip this song
@@ -22,7 +22,7 @@ public class DoSomething : MonoBehaviour {
 	public string token =  "ac6a67377d4f3b655b6aa9ad456d25a29706355e";
 	public string secret = "13b558028fc5d244c8dc1a6cc51ba091afb0be02";
 	public string formats = "ogg";
-	public int maxBitrate = 128;
+	public string maxBitrate = "128";
 	public string placementId;
 	public string stationId;
 	
@@ -30,7 +30,7 @@ public class DoSomething : MonoBehaviour {
 	private string clientId;
 	private JSONNode placement;
 	private JSONNode stations;
-	private Active active;
+	private Current current;
 	private PendingRequest pendingRequest;
 	private JSONNode pendingPlay;
 
@@ -54,9 +54,9 @@ public class DoSomething : MonoBehaviour {
 	}
 
 	// Use this for initialization
-	IEnumerator Start () {
+	void Start () {
 	
-		yield return StartCoroutine(tune ());
+		StartCoroutine(tune ());
 
 	}
 
@@ -74,7 +74,7 @@ public class DoSomething : MonoBehaviour {
 		pendingPlay = null;
 
 		// stop playback of current song and set status to waiting
-		assignCurrentPlay(null, true);
+		AssignCurrentPlay(null, true);
 
 		// pull information about the placement
 		yield return StartCoroutine(GetPlacementInformation());
@@ -83,11 +83,11 @@ public class DoSomething : MonoBehaviour {
 		yield return StartCoroutine(RequestNextPlay());
 	}
 
-	private void assignCurrentPlay(JSONNode play, bool waitingIfEmpty) {
+	private void AssignCurrentPlay(JSONNode play, bool waitingIfEmpty = false) {
 		// remove any existing play
-		if (active != null) {
+		if (current != null) {
 			// trigger play-completed
-			active = null;
+			current = null;
 		}
 
 		if (play == null) {
@@ -104,7 +104,7 @@ public class DoSomething : MonoBehaviour {
 			}
 
 		} else {
-			active = new Active {
+			current = new Current {
 				play = play,
 				canSkip = false,
 				started = false,
@@ -186,10 +186,12 @@ public class DoSomething : MonoBehaviour {
 	 */
 
 	private IEnumerator RequestNextPlay() {
-		if (pendingRequest) {
+		if (pendingRequest != null) {
 			// we're already waiting for a play to come in
 			yield break;
 		}
+
+		yield return StartCoroutine (EnsureClientId ());
 
 		while (true) {
 			Ajax ajax = new Ajax(Ajax.RequestType.POST, apiServerBase + "/play");
@@ -221,19 +223,19 @@ public class DoSomething : MonoBehaviour {
 			}
 
 			if (ajax.success) {
-				if (active) {
+				if (current != null) {
 					// play this when the current song is complete
 					pendingPlay = ajax.response["play"];
 
 				} else {
 					// start playing this right now, since nothing else is active
-					assignCurrentPlay (ajax.response["play"]);
+					AssignCurrentPlay (ajax.response["play"]);
 				}
 
 				yield break;
 
 			} else if (ajax.error == (int) FeedError.NoMoreMusic) {
-				if (active) {
+				if (current != null) {
 					// ran out of music to play, but we're still playing something, so
 					// just make a note here
 					pendingPlay = null;
@@ -257,7 +259,7 @@ public class DoSomething : MonoBehaviour {
 				pendingRequest.retryCount++;
 
 				// wait for an increasingly long time before retrying
-				yield return WaitForSeconds(0.5f * Math.Pow(2.0, pendingRequest.retryCount));
+				yield return new WaitForSeconds(0.5f * (float) Math.Pow(2.0, pendingRequest.retryCount));
 
 			}
 		}
@@ -271,8 +273,6 @@ public class DoSomething : MonoBehaviour {
 		if (PlayerPrefs.HasKey ("feedfm.client_id")) {
 			// have one already, so use it
 			clientId = PlayerPrefs.GetString("feedfm.client_id");
-
-			Debug.Log ("clientId is " + clientId);
 
 			yield break;
 
@@ -293,8 +293,6 @@ public class DoSomething : MonoBehaviour {
 					} catch (PlayerPrefsException) {
 						// ignore, *sigh*
 					}
-
-					Debug.Log ("clientId is " + clientId);
 
 					yield break;
 				}
