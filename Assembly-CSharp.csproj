@@ -47,7 +47,9 @@
   </ItemGroup>
   <ItemGroup>
      <Compile Include="Assets\JSON Tests\CSharp\Test_CSharp.cs" />
-     <Compile Include="Assets\Scripts\NetworkRequest.cs" />
+     <Compile Include="Assets\Scripts\Ajax.cs" />
+     <Compile Include="Assets\Scripts\DoSomething.cs" />
+     <Compile Include="Assets\Scripts\FeedError.cs" />
      <Compile Include="Assets\iTween\Sample\MoveSample.cs" />
      <Compile Include="Assets\iTween\Sample\RotateSample.cs" />
      <Compile Include="Assets\iTween\Sample\SampleInfo.cs" />
