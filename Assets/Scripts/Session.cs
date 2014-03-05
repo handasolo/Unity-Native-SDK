@@ -152,7 +152,7 @@ public class Session : MonoBehaviour {
 			return;
 		}
 
-		StartCoroutine(skipPlay());
+		StartCoroutine(skipPlay(current.play));
 	}
 
 	public void requestInvalidate() {
@@ -160,7 +160,7 @@ public class Session : MonoBehaviour {
 			throw new Exception("No song is active");
 		}
 
-		StartCoroutine (invalidatePlay());
+		StartCoroutine (invalidatePlay(current.play));
 	}
 
 		/************** internal API ******************/

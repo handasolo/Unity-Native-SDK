@@ -48,6 +48,7 @@
   <ItemGroup>
      <Compile Include="Assets\JSON Tests\CSharp\Test_CSharp.cs" />
      <Compile Include="Assets\Scripts\Ajax.cs" />
+     <Compile Include="Assets\Scripts\ClockDigital.cs" />
      <Compile Include="Assets\Scripts\FeedError.cs" />
      <Compile Include="Assets\Scripts\Session.cs" />
      <Compile Include="Assets\iTween\Sample\MoveSample.cs" />
