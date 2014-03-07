@@ -67,8 +67,10 @@ public class Session : MonoBehaviour {
 		onPlayActive += (obj, data) => {
 			reportPlayStarted();
 		};
-*/
+
 		tune ();
+
+		 */
 	}
 
 	/************** public API ******************/
@@ -77,7 +79,7 @@ public class Session : MonoBehaviour {
 	 * Start pulling in music
 	 */
 
-	public void tune() {
+	public void Tune() {
 		if (string.IsNullOrEmpty(token)) {
 			throw new Exception("no <token> value specified!");
 		}
@@ -94,43 +96,43 @@ public class Session : MonoBehaviour {
 		AssignCurrentPlay(null, true);
 
 		// do some async shizzle
-		StartCoroutine (tuneCoroutine ());
+		StartCoroutine (TuneCoroutine ());
 	}	
 
 	/*
 	 * Tell the server we've started playback of the active song
 	 */
 
-	public void reportPlayStarted() {
+	public void ReportPlayStarted() {
 		if (current == null) {
 			throw new Exception ("There is no active song to report that we have started");
 		}
 		
-		StartCoroutine (startPlay (current.play));
+		StartCoroutine (StartPlay (current.play));
 	}
 
 	/*
 	 * Tell the server how much of the song we've listened to
 	 */
 
-	public void reportPlayElapsed(int seconds) {
+	public void ReportPlayElapsed(int seconds) {
 		if (current == null) {
 			throw new Exception ("Attempt to report elapsed play time, but the pay hasn't started");
 		}
 
-		StartCoroutine (elapsePlay (seconds));
+		StartCoroutine (ElapsePlay (seconds));
 	}
 
 	/*
 	 * Tell the server we completed playback of the current song
 	 */
 
-	public void reportPlayCompleted() {
+	public void ReportPlayCompleted() {
 		if ((current == null) || !current.started) {
 			throw new Exception ("Attempt to report a play as completed when there is no active started play");
 		}
 
-		StartCoroutine (completePlay ());
+		StartCoroutine (CompletePlay ());
 	}
 
 	/*
@@ -138,12 +140,12 @@ public class Session : MonoBehaviour {
 	 * 'onSkipDenied' event.
 	 */
 
-	public void requestSkip() {
-		if (current != null) {
+	public void RequestSkip() {
+		if (current == null) {
 			throw new Exception("No song is active");
 		}
 
-		if (current.started) {
+		if (!current.started) {
 			throw new Exception("No song has been started");
 		}
 
@@ -152,15 +154,15 @@ public class Session : MonoBehaviour {
 			return;
 		}
 
-		StartCoroutine(skipPlay(current.play));
+		StartCoroutine(SkipPlay(current.play));
 	}
 
-	public void requestInvalidate() {
-		if (current != null) {
+	public void RequestInvalidate() {
+		if (current == null) {
 			throw new Exception("No song is active");
 		}
 
-		StartCoroutine (invalidatePlay(current.play));
+		StartCoroutine (InvalidatePlay(current.play));
 	}
 
 		/************** internal API ******************/
@@ -191,7 +193,7 @@ public class Session : MonoBehaviour {
 	 * Tell the server that we're starting playback of our active song
 	 */
 
-	private IEnumerator startPlay(JSONNode play) {
+	private IEnumerator StartPlay(JSONNode play) {
 		while (true) {
 			Ajax ajax = new Ajax(Ajax.RequestType.POST, apiServerBase + "/play/" + play["id"] + "/start");
 
@@ -203,14 +205,18 @@ public class Session : MonoBehaviour {
 			}
 
 			if (ajax.success) {
+				Debug.Log ("success on start!");
+
 				current.canSkip = ajax.response["can_skip"].AsBool;
 				current.started = true;
 
 				if (onPlayStarted != null) onPlayStarted(this, play);
 
+				Debug.Log ("looking for next song");
 				// start looking for the next song
 				yield return StartCoroutine(RequestNextPlay());
 
+				Debug.Log ("done looking");
 				yield break;
 
 			} else if (ajax.error == (int) FeedError.PlaybackStarted) {
@@ -241,7 +247,7 @@ public class Session : MonoBehaviour {
 	 * Tell the server we've elapsed X seconds of play time
 	 */
 	
-	private IEnumerator elapsePlay(int seconds) {
+	private IEnumerator ElapsePlay(int seconds) {
 		Ajax ajax = new Ajax (Ajax.RequestType.POST, apiServerBase + "/play/" + current.play ["id"] + "/elapse");
 		ajax.addParameter ("seconds", seconds.ToString ());
 		
@@ -254,7 +260,7 @@ public class Session : MonoBehaviour {
 	 * play active.
 	 */
 	
-	private IEnumerator completePlay() {
+	private IEnumerator CompletePlay() {
 		Ajax ajax = new Ajax(Ajax.RequestType.POST, apiServerBase + "/play/" + current.play["id"] + "/complete");
 
 		yield return StartCoroutine(SignedRequest (ajax));
@@ -278,7 +284,7 @@ public class Session : MonoBehaviour {
 	 * Ask the server to skip the current song.
 	 */
 
-	private IEnumerator skipPlay(JSONNode play) {
+	private IEnumerator SkipPlay(JSONNode play) {
 		Ajax ajax = new Ajax(Ajax.RequestType.POST, apiServerBase + "/play/" + play["id"] + "/skip");
 
 		yield return StartCoroutine(SignedRequest (ajax));
@@ -315,7 +321,7 @@ public class Session : MonoBehaviour {
 		}
 	}
 
-	private IEnumerator invalidatePlay(JSONNode play) {
+	private IEnumerator InvalidatePlay(JSONNode play) {
 		int retryCount = 0;
 
 		while (true) {
@@ -330,6 +336,8 @@ public class Session : MonoBehaviour {
 
 			if (ajax.success) {
 				if (pendingPlay != null) {
+					Debug.Log ("playing queued up song");
+
 					// skip to play already queued up
 					JSONNode pp = pendingPlay;
 					pendingPlay = null;
@@ -337,14 +345,14 @@ public class Session : MonoBehaviour {
 					AssignCurrentPlay(pp);
 
 				} else {
+					Debug.Log ("invalidating current song");
+
 					// invalidate current song
 					AssignCurrentPlay(null, true);
 
 					// If nothing is queued up, that might be because we haven't tried to 'start'
 					// this play yet, triggering the 'requestNextPlay'. So trigger it here.
-					if (pendingRequest != null) {
-						yield return RequestNextPlay();
-					}
+					yield return StartCoroutine(RequestNextPlay());
 				}
 
 				yield break;
@@ -362,7 +370,7 @@ public class Session : MonoBehaviour {
 	 * Get information about the placement we're tuning in to, and ask for a play
 	 */
 
-	private IEnumerator tuneCoroutine() {
+	private IEnumerator TuneCoroutine() {
 
 		// pull information about the placement
 		yield return StartCoroutine(GetPlacementInformation());
@@ -390,16 +398,20 @@ public class Session : MonoBehaviour {
 			// nothing to play now
 
 			if (waitingIfEmpty) {
+				Debug.Log ("nothing pending, but we'll wait");
 				// status = 'waiting'
 				// nothing to play... waiting
 
 			} else {
+				Debug.Log ("nothing pending, and we're not waiting!");
 				// status = 'idle'
 				if (onPlaysExhausted != null) onPlaysExhausted(this);
 
 			}
 
 		} else {
+			Debug.Log ("moving to new active song");
+
 			current = new Current {
 				play = play,
 				canSkip = false,
@@ -483,6 +495,7 @@ public class Session : MonoBehaviour {
 
 	private IEnumerator RequestNextPlay() {
 		if (pendingRequest != null) {
+			Debug.Log ("waiting for play to come in..");
 			// we're already waiting for a play to come in
 			yield break;
 		}
@@ -514,16 +527,22 @@ public class Session : MonoBehaviour {
 			if ((pendingRequest == null) || (pendingRequest.ajax != ajax)) {
 				// another request snuck in while waiting for the response to this one,
 				// so we don't care about this one any more - just quit
-
+				Debug.Log ("ignoring response since another request has started");
 				yield break;
 			}
 
 			if (ajax.success) {
+				pendingRequest = null;
+				
 				if (current != null) {
+					Debug.Log ("saving response as pending play");
+
 					// play this when the current song is complete
 					pendingPlay = ajax.response["play"];
 
 				} else {
+					Debug.Log ("playing response right now!");
+
 					// start playing this right now, since nothing else is active
 					AssignCurrentPlay (ajax.response["play"]);
 				}
@@ -531,12 +550,16 @@ public class Session : MonoBehaviour {
 				yield break;
 
 			} else if (ajax.error == (int) FeedError.NoMoreMusic) {
+			
 				if (current != null) {
+					Debug.Log ("no more music");
+
 					// ran out of music to play, but we're still playing something, so
 					// just make a note here
 					pendingPlay = null;
 
 				} else {
+					Debug.Log ("no more music to queue up");
 					// ran out of music, and nothing else to play
 					if (onPlaysExhausted != null) onPlaysExhausted(this);
 
@@ -545,12 +568,16 @@ public class Session : MonoBehaviour {
 				yield break;
 
 			} else if (ajax.error == (int) FeedError.NotUS) {
+				Debug.Log ("not in us, sorry");
+
 				// user isn't in the united states, so can't play anything
 				if (onNotInUS != null) onNotInUS(this);
 
 				yield break;
 
 			} else {
+				Debug.Log ("unknown error " + ajax.errorMessage);
+
 				// some unknown error 
 				pendingRequest.retryCount++;
 
@@ -559,6 +586,10 @@ public class Session : MonoBehaviour {
 
 			}
 		}
+	}
+
+	public void resetClientId() {
+		PlayerPrefs.DeleteKey ("feedfm.client_id");
 	}
 
 	/*
