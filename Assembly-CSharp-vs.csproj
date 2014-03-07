@@ -51,6 +51,7 @@
      <Compile Include="Assets\Scripts\FeedError.cs" />
      <Compile Include="Assets\Scripts\Session.cs" />
      <Compile Include="Assets\Scripts\SessionGUI.cs" />
+     <Compile Include="Assets\Scripts\SpeakerGUI.cs" />
      <Compile Include="Assets\iTween\Sample\MoveSample.cs" />
      <Compile Include="Assets\iTween\Sample\RotateSample.cs" />
      <Compile Include="Assets\iTween\Sample\SampleInfo.cs" />
