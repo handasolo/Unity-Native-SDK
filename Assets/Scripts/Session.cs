@@ -56,30 +56,13 @@ public class Session : MonoBehaviour {
 	private PendingRequest pendingRequest;
 	private JSONNode pendingPlay;
 
-	// Use this for initialization
-	void Start () {	
-		/*
-
-		onPlacement += (x, d) => Debug.Log ("got a new placement");
-		onStations += (obj, data) => Debug.Log ("got a new list of stations");
-		onPlacementChanged += (obj, id) => Debug.Log ("placement changed!");
-		onStationChanged += (obj, id) => Debug.Log ("station changed");
-		onPlayActive += (obj, data) => {
-			reportPlayStarted();
-		};
-
-		tune ();
-
-		 */
-	}
-
 	/************** public API ******************/
 
 	/*
 	 * Start pulling in music
 	 */
 
-	public void Tune() {
+	public virtual void Tune() {
 		if (string.IsNullOrEmpty(token)) {
 			throw new Exception("no <token> value specified!");
 		}
@@ -103,7 +86,7 @@ public class Session : MonoBehaviour {
 	 * Tell the server we've started playback of the active song
 	 */
 
-	public void ReportPlayStarted() {
+	public virtual void ReportPlayStarted() {
 		if (current == null) {
 			throw new Exception ("There is no active song to report that we have started");
 		}
@@ -115,7 +98,7 @@ public class Session : MonoBehaviour {
 	 * Tell the server how much of the song we've listened to
 	 */
 
-	public void ReportPlayElapsed(int seconds) {
+	public virtual void ReportPlayElapsed(int seconds) {
 		if (current == null) {
 			throw new Exception ("Attempt to report elapsed play time, but the pay hasn't started");
 		}
@@ -127,7 +110,7 @@ public class Session : MonoBehaviour {
 	 * Tell the server we completed playback of the current song
 	 */
 
-	public void ReportPlayCompleted() {
+	public virtual void ReportPlayCompleted() {
 		if ((current == null) || !current.started) {
 			throw new Exception ("Attempt to report a play as completed when there is no active started play");
 		}
@@ -140,7 +123,7 @@ public class Session : MonoBehaviour {
 	 * 'onSkipDenied' event.
 	 */
 
-	public void RequestSkip() {
+	public virtual void RequestSkip() {
 		if (current == null) {
 			throw new Exception("No song is active");
 		}
@@ -157,7 +140,7 @@ public class Session : MonoBehaviour {
 		StartCoroutine(SkipPlay(current.play));
 	}
 
-	public void RequestInvalidate() {
+	public virtual void RequestInvalidate() {
 		if (current == null) {
 			throw new Exception("No song is active");
 		}
@@ -587,6 +570,39 @@ public class Session : MonoBehaviour {
 			}
 		}
 	}
+
+	/*
+	 * True if we're actively pulling audio from the server
+	 */
+
+	public bool IsTuned() {
+		return (current != null) || (pendingRequest != null);
+	}
+
+	/*
+	 * True if we've got an active play and we've started playback
+	 */
+
+	public bool HasActivePlayStarted() {
+		return (current != null) && (current.started);
+	}
+
+	/*
+	 * Return the currently active play, or null
+	 */
+
+	public JSONNode GetActivePlay() {
+		if (current != null) {
+			return current.play;
+
+		} else {
+			return null;
+		}
+	}
+
+	/*
+	 * Reset the cached client id. *for testing only!*
+	 */
 
 	public void resetClientId() {
 		PlayerPrefs.DeleteKey ("feedfm.client_id");

@@ -47,7 +47,7 @@ public class SpeakerGUI : MonoBehaviour {
 		yield return new WaitForSeconds (1.5f);
 
 		Debug.Log ("playing sound");
-		StartCoroutine(Play ("http://ill.com/song.ogg"));
+		StartCoroutine(Play ("http://ill.com/song.ogg", 6.0f));
 
 		yield return new WaitForSeconds (1.5f);
 
@@ -61,18 +61,20 @@ public class SpeakerGUI : MonoBehaviour {
 
 		yield return new WaitForSeconds (1.5f);
 
+		/*
 		Debug.Log ("stopping sound");
 		Stop ();
+		*/
 
 	}
 
-	IEnumerator Play(string url) {
+	IEnumerator Play(string url, float duration) {
 		var www = new WWW(url);
 
 		var clip = www.GetAudioClip (false, /* false = 2D */
 		                            true); /* true = stream and play as soon as possible */
 		                            
-		/* when streaming, we don't know the duration of songs. this is a problem. */
+		/* when streaming, we don't know the duration of songs. */
 
 		while (!clip.isReadyToPlay) {
 			Debug.Log("loading song data..");
@@ -87,9 +89,13 @@ public class SpeakerGUI : MonoBehaviour {
 
 		audioSource.Play ();
 
-		Debug.Log ("length is " + clip.length);
 
 		while (applicationPaused || audioSource.isPlaying || paused) {
+			if (audioSource.time >= duration) {
+				Debug.Log ("time has elapsed - quitting");
+				yield break;
+			}
+
 			Debug.Log ("values are " + applicationPaused + ", " + audioSource.isPlaying + ", " + paused);
 			Debug.Log ("elapsed is " + audioSource.time + ", " + clip.length);
 			yield return true;
