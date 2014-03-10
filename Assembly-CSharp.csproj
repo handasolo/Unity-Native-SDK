@@ -51,6 +51,7 @@
      <Compile Include="Assets\Scripts\ClockDigital.cs" />
      <Compile Include="Assets\Scripts\FeedError.cs" />
      <Compile Include="Assets\Scripts\Player.cs" />
+     <Compile Include="Assets\Scripts\PlayerGUI.cs" />
      <Compile Include="Assets\Scripts\Session.cs" />
      <Compile Include="Assets\Scripts\SessionGUI.cs" />
      <Compile Include="Assets\Scripts\SpeakerGUI.cs" />

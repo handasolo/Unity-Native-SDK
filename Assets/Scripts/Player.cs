@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System;
 using SimpleJSON;
 
 public enum PlayerState {
@@ -22,23 +23,19 @@ public class Player : Session {
 	
 	public event Handler onPlayPaused;
 	public event Handler onPlayResumed;
-	public event Handler onPlayLiked;
-	public event Handler onPlayUnliked;
-	public event Handler onPlayDisliked;
 
 	private bool paused = true;
-	private ActivePlayState activePlayState = null;
+	private ActivePlayState activePlayState;
 	private AudioSource audioSource;
 	private bool applicationPaused;
 
-	public Player() : base() {
+	public void Start() {
 		onPlayActive += OnPlayActive;
 		onPlayStarted += OnPlayStarted;
 		onPlayCompleted += OnPlayCompleted;
 		onPlaysExhausted += OnPlaysExhausted;
 
 		audioSource = gameObject.AddComponent<AudioSource> ();
-
 	}
 
 	public override void Tune() {
@@ -53,6 +50,7 @@ public class Player : Session {
 
 		} else if ((GetActivePlay() != null) && (activePlayState != null) && paused) {
 			// resume playback of song
+			audioSource.Play();
 			paused = false;
 
 			if (onPlayResumed != null) onPlayResumed(this);
@@ -63,9 +61,11 @@ public class Player : Session {
 		if (!HasActivePlayStarted() ||
 		    (activePlayState == null) ||
 		    paused) {
+			Debug.Log ("can't pause, becausenot playing");
 			return;
 		}
 
+		audioSource.Pause ();
 		paused = true;
 
 		if (onPlayPaused != null) onPlayPaused(this);
@@ -81,6 +81,8 @@ public class Player : Session {
 	}
 	
 	private void OnPlayActive(Session s, JSONNode play) {
+		Debug.Log("on plague now active");
+
 		activePlayState = new ActivePlayState {
 			id = play["id"],
 			playStarted = false,
@@ -93,29 +95,43 @@ public class Player : Session {
 	}
 
 	private IEnumerator PlaySound(string id, string url, float durationInSeconds) {
+		Debug.Log ("creating www object");
+
 		// start loading up the song
 		var www = new WWW(url);
-		
-		var clip = www.GetAudioClip (false, /* false = 2D */
-		                             true); /* true = stream and play as soon as possible */
+
+		Debug.Log ("getting audio clip");
+		var clip = www.GetAudioClip (false, //false = 2D 
+		                             true); // true = stream and play as soon as possible
 
 		// wait for something we can play
-		while (!clip.isReadyToPlay) {
+		while (!clip.isReadyToPlay && (www.progress < 1)) {
+			Debug.Log ("waiting for clip to be ready or error, progress is " + www.progress);
+
 			// while waiting for clip, another one was queued up
 			if ((activePlayState == null) || (activePlayState.id != id))
 				yield break;
-
-			// TODO:
-			// there should probably be something in here to deal with the case where we
-			// never load up something successfully
 
 			yield return new WaitForSeconds(0.2f);
 		}
 
 		// make sure we're still controlling the active play
-		if ((activePlayState == null) || (activePlayState.id != id))
+		if ((activePlayState == null) || (activePlayState.id != id)) {
+			Debug.Log ("not controlling same play");
 			yield break;
-		
+		}
+
+		// this never seems to work
+		if (!String.IsNullOrEmpty(www.error)) {
+			Debug.Log ("error is not null");
+			// something failed trying to get the stream - mark this as invalid
+			RequestInvalidate();
+			
+			yield break;
+		}
+
+		Debug.Log ("progressing with playing the audio");
+
 		audioSource.loop = false;
 		audioSource.clip = clip;
 
@@ -168,8 +184,9 @@ public class Player : Session {
 		}
 
 		// wait for server to acknowledge our 'start' call before reporting the song complete
-		// TODO: set a limit on this - maybe 2 seconds
-		while (!activePlayState.startReportedToServer) {
+		float timeWaitedForCompletion = 0f;
+		while (!activePlayState.startReportedToServer && (timeWaitedForCompletion < 2.0f)) {
+			timeWaitedForCompletion += Time.deltaTime;
 			yield return true;
 		}
 
@@ -207,13 +224,13 @@ public class Player : Session {
 	private void OnPlaysExhausted(Session s) {
 		paused = false;
 	}
-	
+
 	/* 
 	 * Keep track of when the audio isn't playing paused, but just in the
 	 * background
 	 */
-	
-	void OnApplicationPause(bool pauseState) {
+
+	void OnApplicationPause(bool pauseState) {		
 		applicationPaused = pauseState;
 	}
 

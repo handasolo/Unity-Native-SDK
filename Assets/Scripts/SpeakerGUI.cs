@@ -3,29 +3,6 @@ using System.Collections;
 
 public class SpeakerGUI : MonoBehaviour {
 
-	/*
-	 * 
-	 * 
-	 * or maybe I don't make this - I just make a Player object that observes an Audio Source.
-	 * 
-	 * that probably makes more sense, right?
-	 * 
-	 * audio = speaker.create() -
-	 *   use the WWW class to create an AudioClip
-	 * audio.play
-	 *   AudioSource.Play
-	 * audio.pause
-	 *   AudioSource.Pause
-	 * audio.resume
-	 *   AudioSource.Play
-	 * audio.destroy
-	 *   AudioSource.Stop
-	 * 
-	 * 
-	 * Assume the Player class extends the Session class.
-	 * 
-	 */
-
 	private AudioSource audioSource;
 	private bool paused = false;
 	private bool applicationPaused;
