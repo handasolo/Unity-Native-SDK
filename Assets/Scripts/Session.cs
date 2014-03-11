@@ -42,12 +42,14 @@ public class Session : MonoBehaviour {
 	public string apiServerBase = "https://feed.fm/api/v2";
 	public string token =  "ac6a67377d4f3b655b6aa9ad456d25a29706355e";
 	public string secret = "13b558028fc5d244c8dc1a6cc51ba091afb0be02";
-	public string formats = "ogg";
+
 	public string maxBitrate = "128";
 	public string placementId;
 	public string stationId;
 
 	/** Internal state **/
+
+	private string formats = "ogg"; // default, but updated in constructor for diff environments
 
 	private string clientId;
 	private JSONNode placement;
@@ -57,6 +59,16 @@ public class Session : MonoBehaviour {
 	private JSONNode pendingPlay;
 
 	/************** public API ******************/
+
+	public Session() {
+#if UNITY_IPHONE
+		formats = "mp3";
+#endif
+
+#if UNITY_ANDROID
+		formats = "mp3";
+#endif
+	}
 
 	/*
 	 * Start pulling in music
@@ -251,6 +263,8 @@ public class Session : MonoBehaviour {
 		// we really don't care what the response was, really
 
 		if (pendingRequest == null) {
+			Debug.Log ("play was completed, and nothing is pending, so moving forward");
+
 			// start playing whatever we've got queued up
 			JSONNode pp = pendingPlay;
 			pendingPlay = null;
@@ -258,6 +272,8 @@ public class Session : MonoBehaviour {
 			AssignCurrentPlay(pp);
 
 		} else {
+			Debug.Log ("play was completed... but there is a pending request, so waiting for that");
+
 			// waiting for a request to come in, so kill current song and announce that we're waiting
 			AssignCurrentPlay (null, true);
 		}
@@ -414,7 +430,7 @@ public class Session : MonoBehaviour {
 	 */
 
 	private IEnumerator GetPlacementInformation() {
-		if (!String.IsNullOrEmpty(placementId) && (placement != null) && (placement["id"] == placementId)) {
+		if (!String.IsNullOrEmpty(placementId) && (placement != null) && ((string) placement["id"] == placementId)) {
 			// we already have this placement loaded up
 			yield break;
 		}
@@ -436,6 +452,10 @@ public class Session : MonoBehaviour {
 				placement = ajax.response["placement"];
 				stations = ajax.response["stations"];
 
+				if (String.IsNullOrEmpty(placementId)) {
+					if (onPlacementChanged != null) onPlacementChanged(this, placementId);
+				}
+
 				if (placementId != placement["id"]) {
 					placementId = placement["id"];
 
@@ -448,7 +468,7 @@ public class Session : MonoBehaviour {
 					if (onStationChanged != null) onStationChanged(this, stationId);
 				}
 
-				if (onStations != null) onStations(this, stations);
+				if (onStations != null) onStations(this, stations);				
 
 				yield break;
 
@@ -547,6 +567,8 @@ public class Session : MonoBehaviour {
 					if (onPlaysExhausted != null) onPlaysExhausted(this);
 
 				}
+
+				pendingRequest = null;
 
 				yield break;
 

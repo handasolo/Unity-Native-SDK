@@ -25,6 +25,12 @@ public class PlayerGUI : MonoBehaviour {
 			Debug.Log ("play has started");
 			display = d ["audio_file"] ["track"] ["title"] + " by " + d ["audio_file"] ["artist"] ["name"] + " is playing";
 		};
+		player.onPlayPaused += (p) => {
+			Debug.Log ("play has paused");
+		};
+		player.onPlayResumed += (p) => {
+			Debug.Log ("play has resumed");
+		};
 		player.onPlayCompleted += (p, d) => {
 			Debug.Log ("play is complete");
 			display = "";

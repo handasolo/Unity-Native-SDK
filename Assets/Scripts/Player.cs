@@ -28,6 +28,7 @@ public class Player : Session {
 	private ActivePlayState activePlayState;
 	private AudioSource audioSource;
 	private bool applicationPaused;
+	private float elapseInterval = 10f;
 
 	public void Start() {
 		onPlayActive += OnPlayActive;
@@ -61,7 +62,7 @@ public class Player : Session {
 		if (!HasActivePlayStarted() ||
 		    (activePlayState == null) ||
 		    paused) {
-			Debug.Log ("can't pause, becausenot playing");
+			Debug.Log ("can't pause, because not playing");
 			return;
 		}
 
@@ -73,6 +74,8 @@ public class Player : Session {
 	
 	public void Skip() {
 		if (!HasActivePlayStarted()) {
+			Debug.Log("can't skip a non-actively-playing song");
+
 			// can't skip non-playing song
 			return;
 		}
@@ -142,9 +145,13 @@ public class Player : Session {
 
 		audioSource.Play ();
 
+		float lastElapse = 0f;
+
 		while ((activePlayState != null) && (applicationPaused || audioSource.isPlaying || paused)) {
+			float time = audioSource.time;
+
 			// don't play past the duration of the song
-			if (audioSource.time >= durationInSeconds) {
+			if (time >= durationInSeconds) {
 				Debug.Log ("time has elapsed - quitting play wait loop");
 				break;
 			}
@@ -156,12 +163,23 @@ public class Player : Session {
 			}
 
 			// tell the server we started the song
-			if (!activePlayState.playStarted && (audioSource.time > 0)) {
+			if (!activePlayState.playStarted && (time > 0)) {
 				ReportPlayStarted ();
 				activePlayState.playStarted = true;
 			}
 
+			/* future optimization: start loading queued up song now that the current
+			 *   one has completed loading
+			if (www.progress == 1) {
+			}
+			*/
+
 			// every X seconds, report elapsed time to the server
+			if (time - lastElapse > elapseInterval) {
+				ReportPlayElapsed((int) Math.Floor (time));
+
+				lastElapse = time;
+			}
 			
 			yield return true;
 		}
@@ -198,7 +216,7 @@ public class Player : Session {
 	 */
 
 	private void OnPlayStarted(Session s, JSONNode play) {
-		if ((activePlayState != null) && (activePlayState.id == play["id"])) {
+		if ((activePlayState != null) && (activePlayState.id == (string) play["id"])) {
 			activePlayState.startReportedToServer = true;
 		}
 	}
@@ -208,7 +226,10 @@ public class Player : Session {
 	 */
 
 	private void OnPlayCompleted(Session s, JSONNode play) {
-		if ((activePlayState != null) && (activePlayState.id == play["id"])) {
+		Debug.Log ("onPlayCompleted, with ids " + play["id"] + " and activeplaystate is " + activePlayState.id);
+
+		if ((activePlayState != null) && (activePlayState.id == (string) play["id"])) {
+			Debug.Log ("completing song!");
 			activePlayState = null;
 			
 			// force us into play mode in case we were paused and hit
