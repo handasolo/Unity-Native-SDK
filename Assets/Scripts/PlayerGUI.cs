@@ -7,10 +7,16 @@ public class PlayerGUI : MonoBehaviour {
 	private Rect windowRect = new Rect (20, 20, 150, 0);
 	private Player player;
 
+
+	private string[] stationTitles;
+	private int stationIndex;
+
 	private bool displayPlayer = false;
 	
 	// Use this for initialization
 	void Start () {
+		Application.runInBackground = true;
+
 		player = GetComponent<Player> ();
 
 		if (Debug.isDebugBuild) {
@@ -18,6 +24,35 @@ public class PlayerGUI : MonoBehaviour {
 			Debug.Log ("resetting client id for debugging");
 			player.resetClientId ();
 		}
+
+		player.onStations += (p, stations) => {
+			JSONArray sa = stations.AsArray;
+
+			stationTitles = new string[sa.Count];
+
+			for (int i = 0; i < sa.Count; i++) {
+				stationTitles[i] = sa[i]["name"];
+
+				if (player.stationId == (string) sa[i]["id"]) {
+					stationIndex = i;
+				}
+			}
+		};
+
+		player.onStationChanged += (p, stationId) => {
+			if (player.stations == null) {
+				return;
+			}
+
+			JSONArray sa = player.stations.AsArray;
+			
+			for (int i = 0; i < sa.Count; i++) {
+				if (player.stationId == (string) sa[i]["id"]) {
+					stationIndex = i;
+					return;
+				}
+			}
+		};
 
 		player.onClientRegistered += (p) => {
 			// huzzah, we're in the US!
@@ -36,13 +71,15 @@ public class PlayerGUI : MonoBehaviour {
 		// only display controls after we've tuned in
 		if (displayPlayer && (player.placement != null)) {
 			var windowWidth = 300;
-			var windowHeight = 180;
+			var windowHeight = 0;
 			var windowX = (Screen.width - windowWidth) / 2;
 			var windowY = (Screen.height - windowHeight) / 2;
 			
 			windowRect = new Rect (windowX, windowY, windowWidth, windowHeight);
 			
-			windowRect = GUILayout.Window (0, windowRect, WindowFunction, player.placement["name"]);
+			windowRect = GUILayout.Window (0, windowRect, WindowFunction, player.placement["name"], 
+			                               new GUILayoutOption[] { GUILayout.ExpandHeight(true), GUILayout.MinHeight(20) });
+
 		}
 	}
 	
@@ -60,7 +97,9 @@ public class PlayerGUI : MonoBehaviour {
 		} else if (player.currentState != PlayerState.Exhausted) {
 			var play = player.activePlay;
 
-			GUILayout.Label (play["audio_file"]["track"]["title"] + " by " + play["audio_file"]["artist"]["name"] + " on " + play["audio_file"]["release"]["title"]);
+			if (play != null) {
+			  GUILayout.Label (play["audio_file"]["track"]["title"] + " by " + play["audio_file"]["artist"]["name"] + " on " + play["audio_file"]["release"]["title"]);
+			}
 			
 			GUILayout.BeginHorizontal ();
 
@@ -76,7 +115,7 @@ public class PlayerGUI : MonoBehaviour {
 
 			}
 
-			GUI.enabled = player.maybeCanSkip;
+			GUI.enabled = player.MaybeCanSkip();
 			if (GUILayout.Button ("Skip")) {
 				player.RequestSkip();
 			}
@@ -93,6 +132,18 @@ public class PlayerGUI : MonoBehaviour {
 			// in again.
 
 		}
+
+		if (player.stations.Count > 1) {
+			// display available stations
+			GUILayout.Space (20);
+			GUILayout.Label ("Try one of our fabulous stations");
+
+			var newStationIndex = GUILayout.SelectionGrid (stationIndex, stationTitles, 1);
+			if (newStationIndex != stationIndex) {
+				player.stationId = player.stations[newStationIndex]["id"];
+			}
+		}
+
 	}
 	
 }

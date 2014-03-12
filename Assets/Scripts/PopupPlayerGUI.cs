@@ -15,6 +15,8 @@ public class PopupPlayerGUI : MonoBehaviour {
 	
 	// Use this for initialization
 	void Start () {
+		Application.runInBackground = true;
+
 		player = GetComponent<Player> ();
 		
 		if (Debug.isDebugBuild) {
@@ -105,7 +107,7 @@ public class PopupPlayerGUI : MonoBehaviour {
 				
 			}
 			
-			GUI.enabled = player.maybeCanSkip;
+			GUI.enabled = player.MaybeCanSkip();
 			if (GUILayout.Button ("Skip")) {
 				player.RequestSkip();
 			}

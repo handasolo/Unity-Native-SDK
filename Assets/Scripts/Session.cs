@@ -45,13 +45,12 @@ public class Session : MonoBehaviour {
 	public string secret = "13b558028fc5d244c8dc1a6cc51ba091afb0be02";
 
 	public string maxBitrate = "128";
-	public string placementId;
-	public string stationId;
 
 	/** Internal state **/
 
 	private string formats = "ogg"; // default, but updated in constructor for diff environments
-
+	private string _placementId;
+	private string _stationId;
 	private string clientId;
 
 	public JSONNode placement {
@@ -98,6 +97,9 @@ public class Session : MonoBehaviour {
 #if UNITY_ANDROID
 		formats = "mp3";
 #endif
+
+		// we haven't started playing any music yet
+		startedPlayback = false;
 	}
 
 	/*
@@ -120,9 +122,6 @@ public class Session : MonoBehaviour {
 		// pretend we've got music available
 		exhausted = false;
 
-		// haven't started playing any music yet
-		startedPlayback = false;
-		
 		// stop playback of current song and set status to waiting
 		AssignCurrentPlay(null, true);
 
@@ -474,7 +473,7 @@ public class Session : MonoBehaviour {
 	 */
 
 	private IEnumerator GetPlacementInformation() {
-		if (!String.IsNullOrEmpty(placementId) && (placement != null) && ((string) placement["id"] == placementId)) {
+		if (!String.IsNullOrEmpty(_placementId) && (placement != null) && ((string) placement["id"] == _placementId)) {
 			// we already have this placement loaded up
 			yield break;
 		}
@@ -482,11 +481,11 @@ public class Session : MonoBehaviour {
 		while (true) {
 			Ajax ajax;
 
-			if (String.IsNullOrEmpty(placementId)) {
+			if (String.IsNullOrEmpty(_placementId)) {
 				ajax = new Ajax(Ajax.RequestType.GET, apiServerBase + "/placement");
 
 			} else {
-				ajax = new Ajax(Ajax.RequestType.GET, apiServerBase + "/placement/" + placementId);
+				ajax = new Ajax(Ajax.RequestType.GET, apiServerBase + "/placement/" + _placementId);
 			
 			}
 
@@ -496,20 +495,20 @@ public class Session : MonoBehaviour {
 				placement = ajax.response["placement"];
 				stations = ajax.response["stations"];
 
-				if (String.IsNullOrEmpty(placementId)) {
-					if (onPlacementChanged != null) onPlacementChanged(this, placementId);
+				if (String.IsNullOrEmpty(_placementId)) {
+					if (onPlacementChanged != null) onPlacementChanged(this, _placementId);
 				}
 
-				if (placementId != placement["id"]) {
-					placementId = placement["id"];
+				if (_placementId != placement["id"]) {
+					_placementId = placement["id"];
 
 					if (onPlacement != null) onPlacement(this, placement);
 				}
 
-				if (String.IsNullOrEmpty(stationId) && (stations.Count > 0)) {
-					stationId = stations[0]["id"];
+				if (String.IsNullOrEmpty(_stationId) && (stations.Count > 0)) {
+					_stationId = stations[0]["id"];
 
-					if (onStationChanged != null) onStationChanged(this, stationId);
+					if (onStationChanged != null) onStationChanged(this, _stationId);
 				}
 
 				if (onStations != null) onStations(this, stations);				
@@ -519,7 +518,7 @@ public class Session : MonoBehaviour {
 			} else if (ajax.error == (int) FeedError.MissingObject) {
 				
 				// can't find placement - no point in continuing
-				if (String.IsNullOrEmpty(placementId)) {
+				if (String.IsNullOrEmpty(_placementId)) {
 					
 					// no default placement
 					throw new Exception("No default placement for these credentials");
@@ -527,7 +526,7 @@ public class Session : MonoBehaviour {
 				} else {
 
 					// no such placement
-					throw new Exception("No such placement with id " + placementId);
+					throw new Exception("No such placement with id " + _placementId);
 				}
 				
 			}
@@ -555,12 +554,12 @@ public class Session : MonoBehaviour {
 			ajax.addParameter("client_id", clientId);
 			ajax.addParameter("max_bitrate", maxBitrate);
 
-			if (!String.IsNullOrEmpty(placementId)) {
-				ajax.addParameter("placement_id", placementId);
+			if (!String.IsNullOrEmpty(_placementId)) {
+				ajax.addParameter("placement_id", _placementId);
 			}
 
-			if (!String.IsNullOrEmpty(stationId)) {
-				ajax.addParameter ("station_id", stationId);
+			if (!String.IsNullOrEmpty(_stationId)) {
+				ajax.addParameter ("station_id", _stationId);
 			}
 
 			// let the rest of the code know we're awaiting a response
@@ -727,9 +726,50 @@ public class Session : MonoBehaviour {
 		}
 	}
 
-	public bool maybeCanSkip {
+	public bool MaybeCanSkip() {
+		return ((current != null) && (current.started) && (current.canSkip));
+	}
+
+	public string placementId {
 		get {
-			return ((current != null) && (current.started) && (current.canSkip));
+			return _placementId;
+		}
+		
+		set {			
+			if (_placementId == value) {
+				return;
+			}
+
+			_placementId = value;
+
+			if (onPlacementChanged != null) onPlacementChanged(this, _placementId);
+
+			if (IsTuned()) {
+				// re-tune, now that we've got a new id
+				Tune ();
+			}
 		}
 	}
+
+	public string stationId {
+		get {
+			return _stationId;
+		}
+		
+		set {
+			if (_stationId == value) {
+				return;
+			}
+
+			_stationId = value;
+
+			if (onStationChanged != null) onStationChanged(this, _stationId);
+			
+			if (IsTuned()) {
+				// re-tune, now that we've got a new id
+				Tune ();
+			}
+		}
+	}
+
 }
