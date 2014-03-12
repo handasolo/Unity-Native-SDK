@@ -12,7 +12,12 @@ public class PlayerGUI : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
 		player = GetComponent<Player> ();
+
+#if UNITY_EDITOR
+		// DEVELOPMENT ONLY!
+		Debug.Log ("resetting client id for testing");
 		player.resetClientId ();
+#endif
 
 		player.onClientRegistered += (p) => {
 			// huzzah, we're in the US!
