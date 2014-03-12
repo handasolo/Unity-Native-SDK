@@ -4,21 +4,56 @@ using System;
 using SimpleJSON;
 
 /*
- * The player starts in Idle, then toggles
- * back and forth between Playing and Paused,
- * then finishes with Exhausted when there is
- * no more music available to play.
+ * This class extend the Session class to manage playing the audio passed to us
+ * from the server. This class doesn't have any logic to talk to the Feed.fm service -
+ * it only uses inherited methods for that.
+ * 
+ * Before you read about this class, you might want to peruse the docs at the top of the Session class.
+ * 
+ * This class exposes a 'Play()' method that calls the 'Tune()' method in the super
+ * class, then starts playback of the audio file we retrieved from the server. During
+ * playback the song can be paused with 'Pause()' and them resumed with 'Play()'. As
+ * song playback progresses, this class calls 'ReportPlayElapsed' every so often so tell
+ * the server how much of the song has been listened to.
+ * 
+ * When the audio completes playback, a 'ReportSongCompleted()' call is made to advance things 
+ * to the next song.
+ * 
+ * This class adds two new events: 'onPlayPaused' and 'onPlayResumed' to notify when playback
+ * has been paused or resumed.
+ * 
+ * This class  exposes a 'PlayerState' value in the 'currentState' property to simplify 
+ * figuring out what to render. The player exists in one of the following states:
+ * 
+ *  - Idle: no music is being pulled from the server. We're in this state before any call to
+ *          Tune() or Play() has been made, and we return to this state if ever the station id
+ *          or placement id is updated.
+ * 
+ *  - Tuning: A call to 'Tune()' or 'Play()' has been made, but we haven't received a response
+ *            from the server or retrieved the audio file yet.
+ * 
+ *  - Playing / Paused: We have a song that we've begun playback on and that we're either
+ *                      currently playing the song or the song is paused. 
+ * 
+ *  - Exhausted: The server has run out of music in the current station that passes DMCA playback
+ *               rules. The current placement id or station id can be changed, followed by a call
+ *               to 'Tune()' or 'Play()' to request more music.
+ * 
+ * This class exposes a 'Skip()' method that basically wraps the 'RequestPlaySkip()' of the
+ * superclass after ensuring there is an active play. This presents a nice, clean 'Tune()', 
+ * 'Play()', 'Skip()', 'Pause()' interface.
+ * 
  */
 
 public enum PlayerState {
 	Idle,
+	Tuning,
 	Playing,
 	Paused,
 	Exhausted
 }
 
 class ActivePlayState {
-
 	public string id;
 	public bool startReportedToServer;
 	public bool soundCompleted;
@@ -43,6 +78,8 @@ public class Player : Session {
 		onPlayStarted += OnPlayStarted;
 		onPlayCompleted += OnPlayCompleted;
 		onPlaysExhausted += OnPlaysExhausted;
+		onStationChanged += OnStationOrPlacementChanged;
+		onPlacementChanged += OnStationOrPlacementChanged;
 
 		audioSource = gameObject.AddComponent<AudioSource> ();
 	}
@@ -255,6 +292,15 @@ public class Player : Session {
 	}
 
 	/*
+	 * Put us in pause mode if we change the station/placement, which
+	 * causes us to go out of 'tune'
+	 */
+
+	private void OnStationOrPlacementChanged(Session s, string id) {
+		paused = true;
+	}
+
+	/*
 	 * Current state of the player
 	 */
 
@@ -263,8 +309,11 @@ public class Player : Session {
 			if (exhausted) {
 				return PlayerState.Exhausted;
 
-			} else if (!startedPlayback) {
+			} else if (!startedPlayback && paused) {
 				return PlayerState.Idle;
+
+			} else if (!startedPlayback && !paused) {
+				return PlayerState.Tuning;
 
 			} else if (paused) {
 				return PlayerState.Paused;

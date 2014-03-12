@@ -3,6 +3,112 @@ using System.Collections;
 using System;
 using SimpleJSON;
 
+/*
+ * 'Session' talks to the Feed.fm servers and maintains the current active song
+ * and queued up songs.
+ * 
+ * On creation, the session instance must minimally be given an API 'token' and 'secret'
+ * that tell it where to pull music from. 
+ * 
+ * Music is organized into 'stations' that are grouped under 'placements'. The 
+ * 'token' provided to the server maps to a default placement, and a placement has
+ * a default station in it. You can optionally override those values by assigning
+ * 'stationId' and 'placementId' values to this object.
+ * 
+ * To begin pulling in music, the Tune() method should be called. This method will
+ * asynchronously obtain credentials from the server, identify the placement and
+ * station to pull music from, and then start pulling 'plays' from the server.
+ * 
+ * After starting Tune(), this object will trigger the following events:
+ * 
+ * onPlacementChanged - called after the placement id is updated (either because you
+ *   set it with 'placementId = XX' or a default value was retrieved from the server.
+ * onStationChanged - called after the station id is updated (either because you 
+ *   set it with 'stationId = XX' or a default value was retrieved from the server.
+ * onPlacement - called after the server responds with data about the placement we are tuned to
+ * onStations - called after the server responds with the list of stations in the current placement
+ * 
+ * onNotInUS - currently the service only supports users in the US. If the user is
+ *   on an IP that we cannot geo-map to the US, then this event is triggered to notify
+ *   that no music can be played and future interaction with the service is pointless.
+ * onClientRegistered - all clients keep a persistent id that allows Feed.fm to enforce
+ *   DMCA music playback rules. You really don't need to know the details of this, but
+ *   when this id is retrieved from the server, we also geo-map the user's IP address, and
+ *   this event can be considered a 'onInUS' event.
+ * 
+ * After the above events are sent out, this instance asks the server to create a new 'play'.
+ * A 'play' holds the details of a single music track and a pointer to an audio file.
+ * The returned play is called the 'active play'. This class sends an 'onPlayActive' event when
+ * the play is returned from the server.
+ * 
+ * Once there is an active play, you may use the 'ReportPlayStarted', 'ReportPlayElapsed', and
+ * 'ReportPlayCompleted' calls to inform the server about the status of playback.
+ * 
+ * Additionally, you can 'RequestSkip' to ask the server if the user may skip the current song
+ * or 'RequestInvalid' to tell the server we're unable to play the current song for some technical
+ * reason. If the server disallows a skip request, an 'onSkipDenied' event will be triggered
+ * and nothing else will change. If the server allows a skip or invalid request, this object will
+ * act as if a 'ReportPlayCompleted' call was made.
+ * 
+ * Calling 'ReportPlayCompleted' causes this object to discard the current active play, send
+ * out an 'onPlayCompleted' event, and then try to request a new play from the server. (well,
+ * technically this object will try to queue up the next play while you're working with the
+ * current play, but you don't really need to know that). Eventually you'll get another
+ * 'onPlayActive' just as when you first called 'Tune()'.
+ * 
+ * Because there are DMCA playback rules that prevent us from playing too many instances of
+ * a particular artist, album, or track, there can be times when Feed.fm can't find any more 
+ * music to return in the current station. In that case, you'll get back an 'onPlaysExhausted'
+ * event instead of an 'onPlayActive'. If you change stations or placements you might be
+ * able to find more music - so you can change the stationId or placementId and then call 'Tune()'
+ * again to get things moving again.
+ * 
+ * This class uses the 'SimpleJSON' package to represent the JSON responses from the server
+ * in memory.
+ * 
+ * Some misc properties you can inspect:
+ *   - placement - the current placement we're tuned to (if any)
+ *   - stations - list of stations in the current placement
+ *   - station - the current station we're tuned to (if any)
+ *   - exhausted - if we've run out of music from the current station, this will be set
+ *      to true until we change to a diffrent station
+ *   - startedPlayback - this is true only after we've received a play from the current
+ *      station and called 'reportPlayStarted'.
+ *   - MaybeCanSkip() - returns true if we think the user can skip the current song. Note
+ *      that we don't really know for sure if we can skip a song until the server tells us.
+ *      If this returns false, then the user definitely can't skip the current song.
+ *   - ResetClientId() - when testing, you will often get an 'onPlaysExhausted' if you skip
+ *      through a bunch of songs in short order. This call will reset your client id and
+ *      effectively erase your play history, freeing you to play music again. *NOTE* it
+ *      is a violation of our terms of service to use this on production apps to allow users
+ *      to avoid playback rules.
+ * 
+ * Some things to keep in mind:
+ *   - A user might change IP addresses in the middle of a session and go from being in the US
+ *     to not being in the US - in which case could get an 'onNotInUS' at just about any time.
+ *     It's not a common thing, but it could happen.
+ * 
+ *   - The JSONNode objects returned are straight from the Feed.fm server. Look at the REST API
+ *     responses to see how things are structured:
+ * 
+ *          https://developer.feed.fm/documentation#REST
+ * 
+ *     for instance, the 'play' object is documented here:
+ * 
+ *          https://developer.feed.fm/documentation#post-play
+ * 
+ *     and the station and placement objects are from here:
+ * 
+ *          https://developer.feed.fm/documentation#get-placement
+ *     
+ * Internally this class requests different audio formats based on the Unity environment
+ * we're in. It boils down to OGG for desktop/web and MP3 for mobile. You don't need to worry
+ * about this.
+ * 
+ * In the future we will surface the ability to request specific bitrates. 
+ * 
+ */
+
 
 class PendingRequest {
 	public Ajax ajax;  // outstanding POST /play request
@@ -40,18 +146,17 @@ public class Session : MonoBehaviour {
 
 	/** Configuration **/
 
-	public string apiServerBase = "https://feed.fm/api/v2";
 	public string token =  "ac6a67377d4f3b655b6aa9ad456d25a29706355e";
 	public string secret = "13b558028fc5d244c8dc1a6cc51ba091afb0be02";
 
-	public string maxBitrate = "128";
-
 	/** Internal state **/
 
+	private string apiServerBase = "https://feed.fm/api/v2";
 	private string formats = "ogg"; // default, but updated in constructor for diff environments
 	private string _placementId;
 	private string _stationId;
 	private string clientId;
+	private string maxBitrate = "128";
 
 	public JSONNode placement {
 		get;
@@ -61,6 +166,23 @@ public class Session : MonoBehaviour {
 	public JSONNode stations {
 		get;
 		private set;
+	}
+	
+	public JSONNode station {
+		get {
+			if (stations == null) {
+				return null;
+			}
+
+			var stationArray = stations.AsArray;
+			for (int i = 0; i < stationArray.Count; i++) {
+				if (_stationId == (string) stationArray[i]["id"]) {
+					return stationArray[i];
+				}
+			}
+
+			return null;
+		}
 	}
 
 	private Current current;
@@ -82,10 +204,11 @@ public class Session : MonoBehaviour {
 		private set;
 	}  
 
-	public bool startedPlayback { // true if we have started music playback since start up or last time we exhausted our plays
+	public bool startedPlayback { // true if we have started music playback since startup or the last 'Tune'
 		get;
 		private set;
 	}
+
 
 	/************** public API ******************/
 
@@ -121,6 +244,9 @@ public class Session : MonoBehaviour {
 
 		// pretend we've got music available
 		exhausted = false;
+
+		// no music has started yet
+		startedPlayback = false;
 
 		// stop playback of current song and set status to waiting
 		AssignCurrentPlay(null, true);
@@ -445,7 +571,6 @@ public class Session : MonoBehaviour {
 				// status = 'idle'
 
 				exhausted = true;
-				startedPlayback = false;
 
 				if (onPlaysExhausted != null) onPlaysExhausted(this);
 
@@ -607,6 +732,9 @@ public class Session : MonoBehaviour {
 				} else {
 					Debug.Log ("no more music to queue up");
 					// ran out of music, and nothing else to play
+
+					exhausted = true;
+
 					if (onPlaysExhausted != null) onPlaysExhausted(this);
 
 				}
@@ -669,7 +797,7 @@ public class Session : MonoBehaviour {
 	 * Reset the cached client id. *for testing only!*
 	 */
 
-	public void resetClientId() {
+	public void ResetClientId() {
 		PlayerPrefs.DeleteKey ("feedfm.client_id");
 	}
 
@@ -740,14 +868,22 @@ public class Session : MonoBehaviour {
 				return;
 			}
 
+			// abort any pending requests or plays
+			pendingRequest = null;
+			pendingPlay = null;
+			
+			// stop playback of current song
+			AssignCurrentPlay(null, true);
+
+			// pretend we've got music available
+			exhausted = false;
+			
+			// no music has started yet
+			startedPlayback = false;
+
 			_placementId = value;
 
 			if (onPlacementChanged != null) onPlacementChanged(this, _placementId);
-
-			if (IsTuned()) {
-				// re-tune, now that we've got a new id
-				Tune ();
-			}
 		}
 	}
 
@@ -761,14 +897,22 @@ public class Session : MonoBehaviour {
 				return;
 			}
 
+			// abort any pending requests or plays
+			pendingRequest = null;
+			pendingPlay = null;
+			
+			// stop playback of current song
+			AssignCurrentPlay(null, true);
+
+			// pretend we've got music available
+			exhausted = false;
+			
+			// no music has started yet
+			startedPlayback = false;
+
 			_stationId = value;
 
 			if (onStationChanged != null) onStationChanged(this, _stationId);
-			
-			if (IsTuned()) {
-				// re-tune, now that we've got a new id
-				Tune ();
-			}
 		}
 	}
 

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 
 public class SessionGUI : MonoBehaviour {
@@ -10,7 +10,7 @@ public class SessionGUI : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
 		session = GetComponent<Session> ();
-		session.resetClientId ();
+		session.ResetClientId ();
 
 		session.onPlacement += (p, d) => Debug.Log("updated placement!");
 		session.onStations += (p, d) => Debug.Log ("updated station list");

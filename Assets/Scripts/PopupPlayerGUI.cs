@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using SimpleJSON;
 
@@ -22,7 +22,7 @@ public class PopupPlayerGUI : MonoBehaviour {
 		if (Debug.isDebugBuild) {
 			// DEVELOPMENT ONLY!
 			Debug.Log ("resetting client id for debugging");
-			player.resetClientId ();
+			player.ResetClientId ();
 		}
 
 		player.onPlacement += (p, d) => {
