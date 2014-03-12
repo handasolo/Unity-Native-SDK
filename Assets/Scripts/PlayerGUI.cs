@@ -32,7 +32,7 @@ public class PlayerGUI : MonoBehaviour {
 	
 	void OnGUI() {
 		// only display controls after we've tuned in
-		if (displayPlayer) {
+		if (displayPlayer && (player.placement != null)) {
 			var windowWidth = 300;
 			var windowHeight = 180;
 			var windowX = (Screen.width - windowWidth) / 2;
@@ -40,7 +40,7 @@ public class PlayerGUI : MonoBehaviour {
 			
 			windowRect = new Rect (windowX, windowY, windowWidth, windowHeight);
 			
-			windowRect = GUILayout.Window (0, windowRect, WindowFunction, "Draggable Window");
+			windowRect = GUILayout.Window (0, windowRect, WindowFunction, player.placement["name"]);
 		}
 	}
 	
@@ -49,7 +49,7 @@ public class PlayerGUI : MonoBehaviour {
 		// player is idle and user hasn't started playing anything yet
 		if (player.currentState == PlayerState.Idle) {
 
-			GUILayout.Label ("Tune in to " + player.placement["name"]);
+			GUILayout.Label ("Tune in!");
 
 			if (GUILayout.Button ("Play")) {
 				player.Play ();
