@@ -3,10 +3,18 @@ using System.Collections;
 using System;
 using SimpleJSON;
 
+/*
+ * The player starts in Idle, then toggles
+ * back and forth between Playing and Paused,
+ * then finishes with Exhausted when there is
+ * no more music available to play.
+ */
+
 public enum PlayerState {
+	Idle,
 	Playing,
 	Paused,
-	Idle
+	Exhausted
 }
 
 class ActivePlayState {
@@ -244,6 +252,28 @@ public class Player : Session {
 
 	private void OnPlaysExhausted(Session s) {
 		paused = false;
+	}
+
+	/*
+	 * Current state of the player
+	 */
+
+	public PlayerState currentState {
+		get {
+			if (exhausted) {
+				return PlayerState.Exhausted;
+
+			} else if (!startedPlayback) {
+				return PlayerState.Idle;
+
+			} else if (paused) {
+				return PlayerState.Paused;
+				
+			} else {
+				return PlayerState.Playing;
+			
+			}
+		}
 	}
 
 	/* 

@@ -35,6 +35,7 @@ public class Session : MonoBehaviour {
 	public event JSONNodeHandler onPlayCompleted;	// the active play has completed playback
 	public event Handler         onPlaysExhausted;	// the server has no more songs for us in the current station
 
+	public event Handler         onClientRegistered;// we successfully registered a client id from the server
 	public event Handler         onNotInUS;			// the server won't give us music because we're outside the US
 
 	/** Configuration **/
@@ -52,11 +53,40 @@ public class Session : MonoBehaviour {
 	private string formats = "ogg"; // default, but updated in constructor for diff environments
 
 	private string clientId;
-	private JSONNode placement;
-	private JSONNode stations;
+
+	public JSONNode placement {
+		get;
+		private set;
+	}
+
+	public JSONNode stations {
+		get;
+		private set;
+	}
+
 	private Current current;
 	private PendingRequest pendingRequest;
 	private JSONNode pendingPlay;
+
+	public JSONNode activePlay {
+		get {
+			if (current != null) {
+				return current.play;
+			} else {
+				return null;
+			}
+		}
+	}
+
+	public bool exhausted {  // true if we've run out of music
+		get;
+		private set;
+	}  
+
+	public bool startedPlayback { // true if we have started music playback since start up or last time we exhausted our plays
+		get;
+		private set;
+	}
 
 	/************** public API ******************/
 
@@ -86,6 +116,12 @@ public class Session : MonoBehaviour {
 		// abort any pending requests or plays
 		pendingRequest = null;
 		pendingPlay = null;
+
+		// pretend we've got music available
+		exhausted = false;
+
+		// haven't started playing any music yet
+		startedPlayback = false;
 		
 		// stop playback of current song and set status to waiting
 		AssignCurrentPlay(null, true);
@@ -102,7 +138,9 @@ public class Session : MonoBehaviour {
 		if (current == null) {
 			throw new Exception ("There is no active song to report that we have started");
 		}
-		
+
+		startedPlayback = true;
+
 		StartCoroutine (StartPlay (current.play));
 	}
 
@@ -314,6 +352,8 @@ public class Session : MonoBehaviour {
 			yield break;
 
 		} else {
+			current.canSkip = false;  // prevent future tries until we get next song
+
 			if (onSkipDenied != null) onSkipDenied(this);
 
 			yield break;
@@ -404,6 +444,10 @@ public class Session : MonoBehaviour {
 			} else {
 				Debug.Log ("nothing pending, and we're not waiting!");
 				// status = 'idle'
+
+				exhausted = true;
+				startedPlayback = false;
+
 				if (onPlaysExhausted != null) onPlaysExhausted(this);
 
 			}
@@ -505,7 +549,7 @@ public class Session : MonoBehaviour {
 
 		yield return StartCoroutine (EnsureClientId ());
 
-		while (true) {
+		while (clientId != null) {
 			Ajax ajax = new Ajax(Ajax.RequestType.POST, apiServerBase + "/play");
 			ajax.addParameter("formats", formats);
 			ajax.addParameter("client_id", clientId);
@@ -635,9 +679,15 @@ public class Session : MonoBehaviour {
 	 */
 
 	private IEnumerator EnsureClientId() {
+		if (clientId != null) {
+			yield break;
+		}
+
 		if (PlayerPrefs.HasKey ("feedfm.client_id")) {
 			// have one already, so use it
 			clientId = PlayerPrefs.GetString("feedfm.client_id");
+
+			if (onClientRegistered != null) onClientRegistered(this);
 
 			yield break;
 
@@ -659,6 +709,15 @@ public class Session : MonoBehaviour {
 						// ignore, *sigh*
 					}
 
+					if (onClientRegistered != null) onClientRegistered(this);
+
+					yield break;
+				
+				} else if (ajax.error == (int) FeedError.NotUS) {
+
+					// user isn't in the united states, so can't play anything
+					if (onNotInUS != null) onNotInUS(this);
+
 					yield break;
 				}
 
@@ -668,4 +727,9 @@ public class Session : MonoBehaviour {
 		}
 	}
 
+	public bool maybeCanSkip {
+		get {
+			return ((current != null) && (current.started) && (current.canSkip));
+		}
+	}
 }
