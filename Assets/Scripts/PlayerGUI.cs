@@ -13,11 +13,11 @@ public class PlayerGUI : MonoBehaviour {
 	void Start () {
 		player = GetComponent<Player> ();
 
-#if UNITY_EDITOR
-		// DEVELOPMENT ONLY!
-		Debug.Log ("resetting client id for testing");
-		player.resetClientId ();
-#endif
+		if (Debug.isDebugBuild) {
+			// DEVELOPMENT ONLY!
+			Debug.Log ("resetting client id for debugging");
+			player.resetClientId ();
+		}
 
 		player.onClientRegistered += (p) => {
 			// huzzah, we're in the US!
@@ -29,12 +29,9 @@ public class PlayerGUI : MonoBehaviour {
 			displayPlayer = false;
 		};
 
-		player.onSkipDenied += (p) => Debug.Log ("skip denied!");
-
 		player.Tune ();
 	}
-	
-	
+		
 	void OnGUI() {
 		// only display controls after we've tuned in
 		if (displayPlayer && (player.placement != null)) {
@@ -50,7 +47,6 @@ public class PlayerGUI : MonoBehaviour {
 	}
 	
 	void WindowFunction(int windowId) {
-
 		// player is idle and user hasn't started playing anything yet
 		if (player.currentState == PlayerState.Idle) {
 
