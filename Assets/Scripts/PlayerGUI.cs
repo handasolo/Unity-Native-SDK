@@ -22,7 +22,7 @@ public class PlayerGUI : MonoBehaviour {
 		if (Debug.isDebugBuild) {
 			// DEVELOPMENT ONLY!
 			Debug.Log ("resetting client id for debugging");
-			player.resetClientId ();
+			player.ResetClientId ();
 		}
 
 		player.onStations += (p, stations) => {
@@ -54,22 +54,12 @@ public class PlayerGUI : MonoBehaviour {
 			}
 		};
 
-		player.onClientRegistered += (p) => {
-			// huzzah, we're in the US!
-			displayPlayer = true;
-		};
-
-		player.onNotInUS += (p) => {
-			// boo, we're not in the US!
-			displayPlayer = false;
-		};
-
 		player.Tune ();
 	}
 		
 	void OnGUI() {
-		// only display controls after we've tuned in
-		if (displayPlayer && (player.placement != null)) {
+		// only display controls if we're in the US
+		if (player.inUS) {
 			var windowWidth = 300;
 			var windowHeight = 0;
 			var windowX = (Screen.width - windowWidth) / 2;

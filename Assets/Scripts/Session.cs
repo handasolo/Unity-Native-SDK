@@ -82,6 +82,9 @@ using SimpleJSON;
  *      effectively erase your play history, freeing you to play music again. *NOTE* it
  *      is a violation of our terms of service to use this on production apps to allow users
  *      to avoid playback rules.
+ *   - inUS - true if the server has mapped us to a US IP address. This is pessimistic and
+ *     is false until we successfully get a song from the server. This boolean is a good way
+ *     to hide the player UI until it is confirmed that we are in the US and can play music.
  * 
  * Some things to keep in mind:
  *   - A user might change IP addresses in the middle of a session and go from being in the US
@@ -209,6 +212,10 @@ public class Session : MonoBehaviour {
 		private set;
 	}
 
+	public bool inUS {
+		get;
+		private set;
+	}
 
 	/************** public API ******************/
 
@@ -223,6 +230,9 @@ public class Session : MonoBehaviour {
 
 		// we haven't started playing any music yet
 		startedPlayback = false;
+
+		// pessimistically assume we're out of the US
+		inUS = false;
 	}
 
 	/*
@@ -703,6 +713,8 @@ public class Session : MonoBehaviour {
 			}
 
 			if (ajax.success) {
+				inUS = true;
+
 				pendingRequest = null;
 				
 				if (current != null) {
@@ -747,6 +759,8 @@ public class Session : MonoBehaviour {
 				Debug.Log ("not in us, sorry");
 
 				// user isn't in the united states, so can't play anything
+				inUS = false;
+
 				if (onNotInUS != null) onNotInUS(this);
 
 				yield break;
@@ -843,6 +857,8 @@ public class Session : MonoBehaviour {
 				} else if (ajax.error == (int) FeedError.NotUS) {
 
 					// user isn't in the united states, so can't play anything
+					inUS = false;
+
 					if (onNotInUS != null) onNotInUS(this);
 
 					yield break;

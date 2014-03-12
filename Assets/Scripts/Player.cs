@@ -111,6 +111,8 @@ public class Player : Session {
 			return;
 		}
 
+		Debug.Log ("pausing!");
+
 		audioSource.Pause ();
 		paused = true;
 
@@ -124,6 +126,8 @@ public class Player : Session {
 			// can't skip non-playing song
 			return;
 		}
+
+		Debug.Log ("skipping!");
 
 		RequestSkip();
 	}
@@ -229,12 +233,23 @@ public class Player : Session {
 			yield return true;
 		}
 
-		audioSource.Stop ();
+		Debug.Log ("stopping " + id);
 
-		// the song was skipped or invalidated, we got nothing else to work on
+		// The song was skipped or invalidated
 		if (activePlayState == null) {
+			audioSource.Stop ();
+
 			yield break;
 		}
+
+		// The song was skipped and another song took our place before
+		// we got to here. Don't stop the audio because it's already
+		// been replaced with the new audio clip.
+		if (activePlayState.id != id) {
+			yield break;
+		}
+
+		audioSource.Stop ();
 
 		activePlayState.soundCompleted = true;
 
@@ -248,12 +263,17 @@ public class Player : Session {
 
 		// wait for server to acknowledge our 'start' call before reporting the song complete
 		float timeWaitedForCompletion = 0f;
-		while (!activePlayState.startReportedToServer && (timeWaitedForCompletion < 2.0f)) {
+		while (activePlayState != null &&
+		       activePlayState.id == id &&
+			   !activePlayState.startReportedToServer && 
+		       (timeWaitedForCompletion < 2.0f)) {
 			timeWaitedForCompletion += Time.deltaTime;
 			yield return true;
 		}
 
-		ReportPlayCompleted ();
+		if ((activePlayState != null) && (activePlayState.id == id)) {
+			ReportPlayCompleted ();
+		}
 	}
 
 	/*
