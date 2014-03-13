@@ -49,7 +49,6 @@
      <Compile Include="Assets\JSON Tests\UnityScript\Test_UnityScript.js" />
      <Compile Include="Assets\Scripts\FuguRotate.js" />
      <None Include="Assets\Standard Assets\Skyboxes\_skybox info.txt" />
-     <None Include="Assets\iTween\ReadMe!\ReadMe!.txt" />
      <None Include="Assets\JSON Tests\TroubleShoot.txt" />
  <Reference Include="Assets\Plugins\ICSharpCode.SharpZipLib">
  <HintPath>Assets\Plugins\ICSharpCode.SharpZipLib.dll</HintPath>

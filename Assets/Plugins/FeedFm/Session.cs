@@ -150,8 +150,8 @@ namespace FeedFm {
 
 		/** Configuration **/
 
-		public string token =  "ac6a67377d4f3b655b6aa9ad456d25a29706355e";
-		public string secret = "13b558028fc5d244c8dc1a6cc51ba091afb0be02";
+		public string token =  "016756fa6ba7df2b208585df57c02b21ff795853";
+		public string secret = "1a3cf1c9c6957fbc7a75b70344142be12a9d45c4";
 
 		/** Internal state **/
 

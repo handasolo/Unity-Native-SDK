@@ -46,11 +46,14 @@
 	</Reference>
   </ItemGroup>
   <ItemGroup>
+     <Compile Include="Assets\Plugins\FeedFm\Ajax.cs" />
+     <Compile Include="Assets\Plugins\FeedFm\FeedError.cs" />
+     <Compile Include="Assets\Plugins\FeedFm\Player.cs" />
+     <Compile Include="Assets\Plugins\FeedFm\Session.cs" />
      <Compile Include="Assets\Plugins\SimpleJSON.cs" />
      <Compile Include="Assets\Plugins\iTween.cs" />
      <Compile Include="Assets\Standard Assets\Scripts\General Scripts\ActivateTrigger.cs" />
      <None Include="Assets\Standard Assets\Skyboxes\_skybox info.txt" />
-     <None Include="Assets\iTween\ReadMe!\ReadMe!.txt" />
      <None Include="Assets\JSON Tests\TroubleShoot.txt" />
  <Reference Include="Assets\Plugins\ICSharpCode.SharpZipLib">
  <HintPath>Assets\Plugins\ICSharpCode.SharpZipLib.dll</HintPath>

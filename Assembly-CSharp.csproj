@@ -46,20 +46,13 @@
 	</Reference>
   </ItemGroup>
   <ItemGroup>
+     <Compile Include="Assets\FeedFm\PlayerGUI.cs" />
+     <Compile Include="Assets\FeedFm\PopupPlayerGUI.cs" />
+     <Compile Include="Assets\FeedFm\Spin.cs" />
      <Compile Include="Assets\JSON Tests\CSharp\Test_CSharp.cs" />
-     <Compile Include="Assets\Scripts\Ajax.cs" />
-     <Compile Include="Assets\Scripts\FeedError.cs" />
-     <Compile Include="Assets\Scripts\Player.cs" />
-     <Compile Include="Assets\Scripts\PlayerGUI.cs" />
-     <Compile Include="Assets\Scripts\PopupPlayerGUI.cs" />
-     <Compile Include="Assets\Scripts\Session.cs" />
      <Compile Include="Assets\Scripts\SessionGUI.cs" />
      <Compile Include="Assets\Scripts\SpeakerGUI.cs" />
-     <Compile Include="Assets\iTween\Sample\MoveSample.cs" />
-     <Compile Include="Assets\iTween\Sample\RotateSample.cs" />
-     <Compile Include="Assets\iTween\Sample\SampleInfo.cs" />
      <None Include="Assets\Standard Assets\Skyboxes\_skybox info.txt" />
-     <None Include="Assets\iTween\ReadMe!\ReadMe!.txt" />
      <None Include="Assets\JSON Tests\TroubleShoot.txt" />
  <Reference Include="Assets\Plugins\ICSharpCode.SharpZipLib">
  <HintPath>Assets\Plugins\ICSharpCode.SharpZipLib.dll</HintPath>
