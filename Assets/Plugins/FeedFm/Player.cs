@@ -91,7 +91,6 @@ namespace FeedFm {
 
 		public void Play() {
 			if (!IsTuned()) {
-				Debug.Log ("playing!");
 				paused = false;
 
 				Tune ();
@@ -109,11 +108,8 @@ namespace FeedFm {
 			if (!HasActivePlayStarted() ||
 			    (activePlayState == null) ||
 			    paused) {
-				Debug.Log ("can't pause, because not playing");
 				return;
 			}
-
-			Debug.Log ("pausing!");
 
 			audioSource.Pause ();
 			paused = true;
@@ -123,20 +119,14 @@ namespace FeedFm {
 		
 		public void Skip() {
 			if (!HasActivePlayStarted()) {
-				Debug.Log("can't skip a non-actively-playing song");
-
 				// can't skip non-playing song
 				return;
 			}
-
-			Debug.Log ("skipping!");
 
 			RequestSkip();
 		}
 		
 		private void OnPlayActive(Session s, JSONNode play) {
-			Debug.Log("on plague now active");
-
 			activePlayState = new ActivePlayState {
 				id = play["id"],
 				playStarted = false,
@@ -149,19 +139,14 @@ namespace FeedFm {
 		}
 
 		private IEnumerator PlaySound(string id, string url, float durationInSeconds) {
-			Debug.Log ("creating www object");
-
 			// start loading up the song
 			var www = new WWW(url);
 
-			Debug.Log ("getting audio clip");
 			var clip = www.GetAudioClip (false, //false = 2D 
 			                             true); // true = stream and play as soon as possible
 
 			// wait for something we can play
 			while (!clip.isReadyToPlay && (www.progress < 1)) {
-				Debug.Log ("waiting for clip to be ready or error, progress is " + www.progress);
-
 				// while waiting for clip, another one was queued up
 				if ((activePlayState == null) || (activePlayState.id != id))
 					yield break;
@@ -171,20 +156,16 @@ namespace FeedFm {
 
 			// make sure we're still controlling the active play
 			if ((activePlayState == null) || (activePlayState.id != id)) {
-				Debug.Log ("not controlling same play");
 				yield break;
 			}
 
 			// this never seems to work
 			if (!String.IsNullOrEmpty(www.error)) {
-				Debug.Log ("error is not null");
 				// something failed trying to get the stream - mark this as invalid
 				RequestInvalidate();
 				
 				yield break;
 			}
-
-			Debug.Log ("progressing with playing the audio");
 
 			audioSource.loop = false;
 			audioSource.clip = clip;
@@ -203,7 +184,6 @@ namespace FeedFm {
 
 				// don't play past the duration of the song
 				if (time >= durationInSeconds) {
-					Debug.Log ("time has elapsed - quitting play wait loop");
 					break;
 				}
 
@@ -234,8 +214,6 @@ namespace FeedFm {
 				
 				yield return true;
 			}
-
-			Debug.Log ("stopping " + id);
 
 			// The song was skipped or invalidated
 			if (activePlayState == null) {
@@ -293,10 +271,7 @@ namespace FeedFm {
 		 */
 
 		private void OnPlayCompleted(Session s, JSONNode play) {
-			Debug.Log ("onPlayCompleted, with ids " + play["id"] + " and activeplaystate is " + activePlayState.id);
-
 			if ((activePlayState != null) && (activePlayState.id == (string) play["id"])) {
-				Debug.Log ("completing song!");
 				activePlayState = null;
 				
 				// force us into play mode in case we were paused and hit

@@ -94,7 +94,6 @@ namespace FeedFm {
 
 				} else {
 					foreach (KeyValuePair<string, string> kp in fields) {
-						Debug.Log (" " + kp.Key + " = " + kp.Value);
 						form.AddField (kp.Key, kp.Value);
 					}
 				}

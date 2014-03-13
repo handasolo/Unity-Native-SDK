@@ -348,15 +348,13 @@ namespace FeedFm {
 			ajax.addHeader ("Authorization",
 			                "Basic " + System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(token + ":" + secret)));
 
-			Debug.Log ("querying " + ajax.url);
-
 			yield return StartCoroutine(ajax.Request());
 
 			if (!ajax.success && (ajax.error == (int) FeedError.BadCredentials)) {
 				throw new Exception("Invalid credentials provided!");
 			}
 
-			ajax.DebugResponse();
+			//ajax.DebugResponse();
 
 			yield break;
 		}
@@ -377,18 +375,14 @@ namespace FeedFm {
 				}
 
 				if (ajax.success) {
-					Debug.Log ("success on start!");
-
 					current.canSkip = ajax.response["can_skip"].AsBool;
 					current.started = true;
 
 					if (onPlayStarted != null) onPlayStarted(this, play);
 
-					Debug.Log ("looking for next song");
 					// start looking for the next song
 					yield return StartCoroutine(RequestNextPlay());
 
-					Debug.Log ("done looking");
 					yield break;
 
 				} else if (ajax.error == (int) FeedError.PlaybackStarted) {
@@ -428,8 +422,6 @@ namespace FeedFm {
 			// we really don't care what the response was, really
 
 			if (pendingRequest == null) {
-				Debug.Log ("play was completed, and nothing is pending, so moving forward");
-
 				// start playing whatever we've got queued up
 				JSONNode pp = pendingPlay;
 				pendingPlay = null;
@@ -437,8 +429,6 @@ namespace FeedFm {
 				AssignCurrentPlay(pp);
 
 			} else {
-				Debug.Log ("play was completed... but there is a pending request, so waiting for that");
-
 				// waiting for a request to come in, so kill current song and announce that we're waiting
 				AssignCurrentPlay (null, true);
 			}
@@ -502,8 +492,6 @@ namespace FeedFm {
 
 				if (ajax.success) {
 					if (pendingPlay != null) {
-						Debug.Log ("playing queued up song");
-
 						// skip to play already queued up
 						JSONNode pp = pendingPlay;
 						pendingPlay = null;
@@ -511,8 +499,6 @@ namespace FeedFm {
 						AssignCurrentPlay(pp);
 
 					} else {
-						Debug.Log ("invalidating current song");
-
 						// invalidate current song
 						AssignCurrentPlay(null, true);
 
@@ -564,12 +550,10 @@ namespace FeedFm {
 				// nothing to play now
 
 				if (waitingIfEmpty) {
-					Debug.Log ("nothing pending, but we'll wait");
 					// status = 'waiting'
 					// nothing to play... waiting
 
 				} else {
-					Debug.Log ("nothing pending, and we're not waiting!");
 					// status = 'idle'
 
 					exhausted = true;
@@ -579,8 +563,6 @@ namespace FeedFm {
 				}
 
 			} else {
-				Debug.Log ("moving to new active song");
-
 				current = new Current {
 					play = play,
 					canSkip = false,
@@ -668,7 +650,6 @@ namespace FeedFm {
 
 		private IEnumerator RequestNextPlay() {
 			if (pendingRequest != null) {
-				Debug.Log ("waiting for play to come in..");
 				// we're already waiting for a play to come in
 				yield break;
 			}
@@ -700,7 +681,6 @@ namespace FeedFm {
 				if ((pendingRequest == null) || (pendingRequest.ajax != ajax)) {
 					// another request snuck in while waiting for the response to this one,
 					// so we don't care about this one any more - just quit
-					Debug.Log ("ignoring response since another request has started");
 					yield break;
 				}
 
@@ -710,14 +690,10 @@ namespace FeedFm {
 					pendingRequest = null;
 					
 					if (current != null) {
-						Debug.Log ("saving response as pending play");
-
 						// play this when the current song is complete
 						pendingPlay = ajax.response["play"];
 
 					} else {
-						Debug.Log ("playing response right now!");
-
 						// start playing this right now, since nothing else is active
 						AssignCurrentPlay (ajax.response["play"]);
 					}
@@ -727,14 +703,11 @@ namespace FeedFm {
 				} else if (ajax.error == (int) FeedError.NoMoreMusic) {
 				
 					if (current != null) {
-						Debug.Log ("no more music");
-
 						// ran out of music to play, but we're still playing something, so
 						// just make a note here
 						pendingPlay = null;
 
 					} else {
-						Debug.Log ("no more music to queue up");
 						// ran out of music, and nothing else to play
 
 						exhausted = true;
@@ -748,8 +721,6 @@ namespace FeedFm {
 					yield break;
 
 				} else if (ajax.error == (int) FeedError.NotUS) {
-					Debug.Log ("not in us, sorry");
-
 					// user isn't in the united states, so can't play anything
 					inUS = false;
 
@@ -758,8 +729,6 @@ namespace FeedFm {
 					yield break;
 
 				} else {
-					Debug.Log ("unknown error " + ajax.errorMessage);
-
 					// some unknown error 
 					pendingRequest.retryCount++;
 
