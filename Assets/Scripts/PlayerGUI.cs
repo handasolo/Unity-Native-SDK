@@ -6,13 +6,10 @@ public class PlayerGUI : MonoBehaviour {
 	
 	private Rect windowRect = new Rect (20, 20, 150, 0);
 	private Player player;
-
-
+	
 	private string[] stationTitles;
 	private int stationIndex;
 
-	private bool displayPlayer = false;
-	
 	// Use this for initialization
 	void Start () {
 		Application.runInBackground = true;
@@ -59,10 +56,11 @@ public class PlayerGUI : MonoBehaviour {
 		
 	void OnGUI() {
 		// only display controls if we're in the US
-		if (player.inUS) {
+		if (player.inUS && (player.placement != null)) {
+
 			var windowWidth = 300;
-			var windowHeight = 0;
-			var windowX = (Screen.width - windowWidth) / 2;
+			var windowHeight = 200;
+			var windowX = 50;
 			var windowY = (Screen.height - windowHeight) / 2;
 			
 			windowRect = new Rect (windowX, windowY, windowWidth, windowHeight);
@@ -80,7 +78,7 @@ public class PlayerGUI : MonoBehaviour {
 		case PlayerState.Idle:
 			GUILayout.Label ("Tune in to " + player.station["name"]);
 			
-			if (GUILayout.Button ("Play")) {
+			if (GUILayout.Button ("Play", GUILayout.Height (50))) {
 				player.Play ();
 			}
 			break;
@@ -111,19 +109,19 @@ public class PlayerGUI : MonoBehaviour {
 			GUILayout.BeginHorizontal ();
 			
 			if (player.currentState == PlayerState.Paused) {
-				if (GUILayout.Button ("Play")) {
+				if (GUILayout.Button ("Play", GUILayout.Height (50))) {
 					player.Play ();
 				}
 				
 			} else if (player.currentState == PlayerState.Playing) {
-				if (GUILayout.Button ("Pause")) {
+				if (GUILayout.Button ("Pause", GUILayout.Height (50))) {
 					player.Pause ();
 				}
 
 			}
 
 			GUI.enabled = player.MaybeCanSkip();
-			if (GUILayout.Button ("Skip")) {
+			if (GUILayout.Button ("Skip", GUILayout.Height (50))) {
 				player.RequestSkip();
 			}
 			GUI.enabled = true;
@@ -138,7 +136,7 @@ public class PlayerGUI : MonoBehaviour {
 			GUILayout.Space (20);
 			GUILayout.Label ("Try one of our fabulous stations");
 
-			var newStationIndex = GUILayout.SelectionGrid (stationIndex, stationTitles, 1);
+			var newStationIndex = GUILayout.SelectionGrid (stationIndex, stationTitles, 1, GUILayout.Height (50 * player.stations.Count));
 			if (newStationIndex != stationIndex) {
 				bool isIdle = player.currentState == PlayerState.Idle;
 
