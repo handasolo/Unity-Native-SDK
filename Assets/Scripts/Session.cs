@@ -57,7 +57,7 @@ using SimpleJSON;
  * 'onPlayActive' just as when you first called 'Tune()'.
  * 
  * Because there are DMCA playback rules that prevent us from playing too many instances of
- * a particular artist, album, or track, there can be times when Feed.fm can't find any more 
+ * a particular artist, album, or track, there may be a time when Feed.fm can't find any more 
  * music to return in the current station. In that case, you'll get back an 'onPlaysExhausted'
  * event instead of an 'onPlayActive'. If you change stations or placements you might be
  * able to find more music - so you can change the stationId or placementId and then call 'Tune()'
@@ -219,7 +219,7 @@ public class Session : MonoBehaviour {
 
 	/************** public API ******************/
 
-	public Session() {
+	public virtual void Awake() {
 #if UNITY_IPHONE
 		formats = "mp3";
 #endif
@@ -288,7 +288,10 @@ public class Session : MonoBehaviour {
 			throw new Exception ("Attempt to report elapsed play time, but the pay hasn't started");
 		}
 
-		StartCoroutine (ElapsePlay (seconds));
+		Ajax ajax = new Ajax (Ajax.RequestType.POST, apiServerBase + "/play/" + current.play ["id"] + "/elapse");
+		ajax.addParameter ("seconds", seconds.ToString ());
+			
+		StartCoroutine (SignedRequest (ajax));
 	}
 
 	/*
@@ -411,18 +414,6 @@ public class Session : MonoBehaviour {
 		}
 	}
 
-	/*
-	 * Tell the server we've elapsed X seconds of play time
-	 */
-	
-	private IEnumerator ElapsePlay(int seconds) {
-		Ajax ajax = new Ajax (Ajax.RequestType.POST, apiServerBase + "/play/" + current.play ["id"] + "/elapse");
-		ajax.addParameter ("seconds", seconds.ToString ());
-		
-		yield return StartCoroutine (SignedRequest (ajax));
-	}
-
-	
 	/*
 	 * Tell the server we've completed the current play, and make any pending
 	 * play active.
@@ -879,7 +870,7 @@ public class Session : MonoBehaviour {
 			return _placementId;
 		}
 		
-		set {			
+		set {	
 			if (_placementId == value) {
 				return;
 			}

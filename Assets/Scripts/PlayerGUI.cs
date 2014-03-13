@@ -4,17 +4,19 @@ using SimpleJSON;
 
 public class PlayerGUI : MonoBehaviour {
 	
-	private Rect windowRect = new Rect (20, 20, 150, 0);
+	private Rect windowRect;
 	private Player player;
 	
 	private string[] stationTitles;
 	private int stationIndex;
 
+	void Awake() {
+		player = GetComponent<Player>();
+	}
+
 	// Use this for initialization
 	void Start () {
 		Application.runInBackground = true;
-
-		player = GetComponent<Player> ();
 
 		if (Debug.isDebugBuild) {
 			// DEVELOPMENT ONLY!
@@ -22,6 +24,7 @@ public class PlayerGUI : MonoBehaviour {
 			player.ResetClientId ();
 		}
 
+		// map station list to array of station names
 		player.onStations += (p, stations) => {
 			JSONArray sa = stations.AsArray;
 
@@ -36,6 +39,7 @@ public class PlayerGUI : MonoBehaviour {
 			}
 		};
 
+		// figure out the index of the new station in the list of stations
 		player.onStationChanged += (p, stationId) => {
 			if (player.stations == null) {
 				return;
@@ -51,23 +55,21 @@ public class PlayerGUI : MonoBehaviour {
 			}
 		};
 
+		var windowWidth = 300;
+		var windowHeight = 200;
+		var windowX = (Screen.width - windowWidth) / 2;
+		var windowY =  50;
+		
+		windowRect = new Rect (windowX, windowY, windowWidth, windowHeight);
+
 		player.Tune ();
 	}
-		
+
 	void OnGUI() {
 		// only display controls if we're in the US
 		if (player.inUS && (player.placement != null)) {
-
-			var windowWidth = 300;
-			var windowHeight = 200;
-			var windowX = 50;
-			var windowY = (Screen.height - windowHeight) / 2;
-			
-			windowRect = new Rect (windowX, windowY, windowWidth, windowHeight);
-			
 			windowRect = GUILayout.Window (0, windowRect, WindowFunction, player.placement["name"], 
 			                               new GUILayoutOption[] { GUILayout.ExpandHeight(true), GUILayout.MinHeight(20) });
-
 		}
 	}
 	

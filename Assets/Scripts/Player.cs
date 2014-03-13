@@ -10,38 +10,42 @@ using SimpleJSON;
  * 
  * Before you read about this class, you might want to peruse the docs at the top of the Session class.
  * 
- * This class exposes a 'Play()' method that calls the 'Tune()' method in the super
- * class, then starts playback of the audio file we retrieved from the server. During
- * playback the song can be paused with 'Pause()' and them resumed with 'Play()'. As
- * song playback progresses, this class calls 'ReportPlayElapsed' every so often so tell
+ * To use this class, first create an instance and set the 'token' and 'secret' values
+ * to what you were given on developer.feed.fm.
+ * 
+ * If you want to start queuing music up without immediately playing it, plus ensure that
+ * the computer can contact the Feed.fm user, you may call the
+ * 'Tune()' method, which will cause the instance to request the next song from the Feed.fm
+ * service, but not begin playback. If you want music to start playing immediately, 
+ * or you want to start playing music that was retrieved in an earlier Tune() call, call the 'Play()'
+ * method.
+ * 
+ * During playback a song can be paused with 'Pause()' and them resumed with 'Play()'. As
+ * song playback progresses, this class calls 'ReportPlayElapsed()' every so often to tell
  * the server how much of the song has been listened to.
  * 
- * When the audio completes playback, a 'ReportSongCompleted()' call is made to advance things 
- * to the next song.
+ * When the current song finishes, or if a 'Skip()' call is made, another song will
+ * be retrieved from the server and playback started.
  * 
  * This class adds two new events: 'onPlayPaused' and 'onPlayResumed' to notify when playback
  * has been paused or resumed.
  * 
- * This class  exposes a 'PlayerState' value in the 'currentState' property to simplify 
+ * This class  exposes a 'PlayerState' enum value in the 'currentState' property to simplify 
  * figuring out what to render. The player exists in one of the following states:
  * 
- *  - Idle: no music is being pulled from the server. We're in this state before any call to
- *          Tune() or Play() has been made, and we return to this state if ever the station id
+ *  - Idle: no music is being pulled from the server, or only a call to Tune() has been made. 
+ *          This is the initial default state, and we return to this state if ever the station id
  *          or placement id is updated.
  * 
- *  - Tuning: A call to 'Tune()' or 'Play()' has been made, but we haven't received a response
+ *  - Tuning: A call to 'Play()' has been made, but we haven't received a response
  *            from the server or retrieved the audio file yet.
  * 
- *  - Playing / Paused: We have a song that we've begun playback on and that we're either
+ *  - Playing / Paused: We have a song that we've begun playback of and we're either
  *                      currently playing the song or the song is paused. 
  * 
  *  - Exhausted: The server has run out of music in the current station that passes DMCA playback
  *               rules. The current placement id or station id can be changed, followed by a call
  *               to 'Tune()' or 'Play()' to request more music.
- * 
- * This class exposes a 'Skip()' method that basically wraps the 'RequestPlaySkip()' of the
- * superclass after ensuring there is an active play. This presents a nice, clean 'Tune()', 
- * 'Play()', 'Skip()', 'Pause()' interface.
  * 
  */
 
@@ -59,7 +63,6 @@ class ActivePlayState {
 	public bool soundCompleted;
 	public bool playStarted;
 	public int previousPosition;
-
 }
 
 public class Player : Session {
@@ -78,18 +81,15 @@ public class Player : Session {
 		onPlayStarted += OnPlayStarted;
 		onPlayCompleted += OnPlayCompleted;
 		onPlaysExhausted += OnPlaysExhausted;
-		onStationChanged += OnStationOrPlacementChanged;
-		onPlacementChanged += OnStationOrPlacementChanged;
+		onPlacementChanged += OnPlacementChanged;
+		onStationChanged += OnStationChanged;
 
 		audioSource = gameObject.AddComponent<AudioSource> ();
 	}
 
-	public override void Tune() {
-		base.Tune ();
-	}
-	
 	public void Play() {
 		if (!IsTuned()) {
+			Debug.Log ("playing!");
 			paused = false;
 
 			Tune ();
@@ -316,8 +316,23 @@ public class Player : Session {
 	 * causes us to go out of 'tune'
 	 */
 
-	private void OnStationOrPlacementChanged(Session s, string id) {
-		paused = true;
+	private bool initialStation = true;
+	private void OnStationChanged(Session s, string id) {
+		if (!initialStation) paused = true;
+
+		initialStation = false;
+	}
+
+	/*
+	 * Put us in pause mode if we change the station/placement, which
+	 * causes us to go out of 'tune'
+	 */
+
+	private bool initialPlacement = true;
+	private void OnPlacementChanged(Session s, string id) {
+		if (!initialPlacement) paused = true;
+
+		initialPlacement = false;
 	}
 
 	/*
