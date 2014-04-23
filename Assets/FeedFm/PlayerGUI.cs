@@ -125,7 +125,7 @@ public class PlayerGUI : MonoBehaviour {
 
 			GUI.enabled = player.MaybeCanSkip();
 			if (GUILayout.Button ("Skip", GUILayout.Height (50))) {
-				player.RequestSkip();
+				player.Skip();
 			}
 			GUI.enabled = true;
 			
