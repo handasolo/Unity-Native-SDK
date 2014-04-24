@@ -89,6 +89,10 @@ namespace FeedFm {
 			audioSource = gameObject.AddComponent<AudioSource> ();
 		}
 
+		/*
+		 * Begin or resume song playback.
+		 */
+
 		public void Play() {
 			if (!IsTuned()) {
 				paused = false;
@@ -103,6 +107,10 @@ namespace FeedFm {
 				if (onPlayResumed != null) onPlayResumed(this);
 			}
 		}
+
+		/*
+		 * Pause playback of the current song, if one is playing.
+		 */
 		
 		public void Pause() {
 			if (!HasActivePlayStarted() ||
@@ -116,6 +124,13 @@ namespace FeedFm {
 
 			if (onPlayPaused != null) onPlayPaused(this);
 		}
+
+		/*
+		 * Ask the server if we can skip the current song. If so, the current song will
+		 * stop (and emit an onPlayCompleted event) and the next one will start (and emit
+		 * an onPlayStarted event). If the server tells us we can't skip the song, then
+		 * an onSkipDenied event will be emitted and the song will continue playing.
+		 */
 		
 		public void Skip() {
 			if (!HasActivePlayStarted()) {
@@ -137,6 +152,13 @@ namespace FeedFm {
 
 			StartCoroutine(PlaySound(play["id"], play["audio_file"]["url"], play["audio_file"]["duration_in_seconds"].AsFloat));
 		}
+
+		/*
+		 * This coroutine is the heart of the class. It starts playback of the current song
+		 * and waits for it to complete or a flag to be sent that indicates the song should be
+		 * stopped. This routine triggers 'start', 'elapse', and 'complete' events that are
+		 * sent to the server.
+		 */
 
 		private IEnumerator PlaySound(string id, string url, float durationInSeconds) {
 			// start loading up the song
@@ -189,7 +211,6 @@ namespace FeedFm {
 
 				// quit if another song became active in the meantime
 				if (activePlayState.id != id) {
-					audioSource.Stop ();
 					yield break;
 				}
 
