@@ -27,7 +27,7 @@ The 'Player' script is what handles all the logic and communication with the
 Feed.fm service. This script requests music from Feed.fm and creates an AudioSource
 to play the music. The script exposes a simple API for starting and stopping music,
 and it exposes some simple C# events that keep you informed about what the player is
-doing. The code for the player is in Assets/Plugins/FeedFm Demos/Player.cs.
+doing. The code for the player is in Assets/Plugins/FeedFm/Player.cs.
 
 The only configuration needed by the Player script is the 'token' and 'secret'
 given to you by Feed.fm when you register and create music stations. This
