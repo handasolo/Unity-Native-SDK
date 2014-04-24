@@ -2,6 +2,7 @@
 
 import SimpleJSON;
 
+
 private var m_InGameLog = "";
 private var m_Position = Vector2.zero;
 
