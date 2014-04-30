@@ -94,3 +94,11 @@ This API retrieves and plays one song at a time from the Internet, so
 the client must have an active Internet connection for music playback
 to happen.
 
+The sample scene included in this package will freely play a station
+created by Feed.fm. To create and play your own stations, you will need
+to register with Feed.fm and pay a subscription fee to cover
+payments to artists and labels. Rates are around $0.0016 per minute
+of playback. Subscriptions start at $25/month. Everything can
+be completed without negotiation or talking to a salesperson.
+
+
