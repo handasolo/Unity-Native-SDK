@@ -1,7 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System;
-using SimpleJSON;
+using FeedFm;
+using FeedFm.Internal.SimpleJSON;
 
 /*
  * 'Session' talks to the Feed.fm servers and maintains the current active song
@@ -112,7 +113,7 @@ using SimpleJSON;
  * 
  */
 
-namespace FeedFm {
+namespace FeedFm.Internal {
 
 	class PendingRequest {
 		public Ajax ajax;  // outstanding POST /play request

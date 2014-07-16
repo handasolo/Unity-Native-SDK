@@ -9,7 +9,7 @@
 // ------------------------------------------------------------------------------
 using System;
 
-namespace FeedFm {
+namespace FeedFm.Internal {
 	
 	public enum FeedError : int {
 

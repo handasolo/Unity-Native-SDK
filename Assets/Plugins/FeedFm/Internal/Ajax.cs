@@ -14,7 +14,7 @@ using SimpleJSON;
  * 
  */
 
-namespace FeedFm {
+namespace FeedFm.Internal {
 	
 	public class Ajax {
 
